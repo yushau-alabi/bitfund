@@ -309,3 +309,31 @@
 (define-read-only (get-balance (account principal))
     (ok (default-to u0 (map-get? balances account)))
 )
+
+;; desc Get the total supply of fund tokens
+;; returns (ok uint) with the total supply
+(define-read-only (get-total-supply)
+    (ok (var-get total-supply))
+)
+
+;; desc Get details of a specific proposal
+;; param proposal-id: The ID of the proposal
+;; returns (ok (optional {...})) with proposal details
+(define-read-only (get-proposal (proposal-id uint))
+    (ok (map-get? proposals proposal-id))
+)
+
+;; desc Get deposit information for an account
+;; param account: The principal to check
+;; returns (ok (optional {...})) with deposit details
+(define-read-only (get-deposit-info (account principal))
+    (ok (map-get? deposits account))
+)
+
+;; desc Get the vote cast by a specific voter on a proposal
+;; param proposal-id: The ID of the proposal
+;; param voter: The principal who voted
+;; returns (ok (optional bool)) with the vote cast
+(define-read-only (get-vote (proposal-id uint) (voter principal))
+    (ok (map-get? votes {proposal-id: proposal-id, voter: voter}))
+)
