@@ -273,3 +273,39 @@
         )
     )
 )
+
+;; desc Execute an approved proposal
+;; param proposal-id: The ID of the proposal to execute
+;; returns (ok true) on successful execution
+(define-public (execute-proposal (proposal-id uint))
+    (begin
+        (try! (check-initialized))
+        (try! (validate-proposal-id proposal-id))
+
+        (let (
+            (proposal (unwrap! (map-get? proposals proposal-id) err-proposal-not-found))
+            (contract-balance (stx-get-balance (as-contract tx-sender)))
+        )
+            (asserts! (not (get executed proposal)) err-unauthorized)
+            (asserts! (>= block-height (get expires-at proposal)) err-proposal-expired)
+            (asserts! (> (get yes-votes proposal) (get no-votes proposal)) err-unauthorized)
+            (asserts! (>= contract-balance (get amount proposal)) err-insufficient-balance)
+            
+            ;; Execute proposal (transfer funds)
+            (try! (as-contract (stx-transfer? (get amount proposal) (as-contract tx-sender) (get target proposal))))
+            
+            ;; Mark proposal as executed
+            (map-set proposals proposal-id (merge proposal {executed: true}))
+            (ok true)
+        )
+    )
+)
+
+;; Read-only Functions
+
+;; desc Get the token balance of an account
+;; param account: The principal to check
+;; returns (ok uint) with the balance
+(define-read-only (get-balance (account principal))
+    (ok (default-to u0 (map-get? balances account)))
+)
