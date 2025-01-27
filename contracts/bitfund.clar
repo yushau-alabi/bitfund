@@ -157,8 +157,8 @@
         ;; Update deposit records
         (map-set deposits tx-sender {
             amount: amount,
-            lock-until: (+ block-height (var-get lock-period)),
-            last-reward-block: block-height
+            lock-until: (+ stacks-block-height (var-get lock-period)),
+            last-reward-block: stacks-block-height
         })
         
         ;; Mint fund tokens
@@ -178,7 +178,7 @@
             (deposit-info (unwrap! (map-get? deposits tx-sender) err-unauthorized))
             (user-balance (unwrap! (get-balance tx-sender) err-unauthorized))
         )
-            (asserts! (>= block-height (get lock-until deposit-info)) err-locked-period)
+            (asserts! (>= stacks-block-height (get lock-until deposit-info)) err-locked-period)
             (asserts! (>= user-balance amount) err-insufficient-balance)
             
             ;; Burn tokens first
@@ -223,7 +223,7 @@
                 description: description,
                 amount: amount,
                 target: target,
-                expires-at: (+ block-height duration),
+                expires-at: (+ stacks-block-height duration),
                 executed: false,
                 yes-votes: u0,
                 no-votes: u0
@@ -249,7 +249,7 @@
             (voter-power (calculate-voting-power tx-sender))
         )
             (asserts! (> voter-power u0) err-unauthorized)
-            (asserts! (< block-height (get expires-at proposal)) err-proposal-expired)
+            (asserts! (< stacks-block-height (get expires-at proposal)) err-proposal-expired)
             (asserts! (is-none (map-get? votes {proposal-id: proposal-id, voter: tx-sender})) err-already-voted)
             
             ;; Record vote after all validations pass
@@ -287,7 +287,7 @@
             (contract-balance (stx-get-balance (as-contract tx-sender)))
         )
             (asserts! (not (get executed proposal)) err-unauthorized)
-            (asserts! (>= block-height (get expires-at proposal)) err-proposal-expired)
+            (asserts! (>= stacks-block-height (get expires-at proposal)) err-proposal-expired)
             (asserts! (> (get yes-votes proposal) (get no-votes proposal)) err-unauthorized)
             (asserts! (>= contract-balance (get amount proposal)) err-insufficient-balance)
             
