@@ -234,3 +234,42 @@
         )
     )
 )
+
+;; desc Cast a vote on an existing proposal
+;; param proposal-id: The ID of the proposal
+;; param vote-for: true for yes, false for no
+;; returns (ok true) on successful vote
+(define-public (vote (proposal-id uint) (vote-for bool))
+    (begin
+        (try! (check-initialized))
+        (try! (validate-proposal-id proposal-id))
+
+        (let (
+            (proposal (unwrap! (map-get? proposals proposal-id) err-proposal-not-found))
+            (voter-power (calculate-voting-power tx-sender))
+        )
+            (asserts! (> voter-power u0) err-unauthorized)
+            (asserts! (< block-height (get expires-at proposal)) err-proposal-expired)
+            (asserts! (is-none (map-get? votes {proposal-id: proposal-id, voter: tx-sender})) err-already-voted)
+            
+            ;; Record vote after all validations pass
+            (map-set votes {proposal-id: proposal-id, voter: tx-sender} vote-for)
+            
+            ;; Update vote counts
+            (map-set proposals proposal-id 
+                (merge proposal 
+                    {
+                        yes-votes: (if vote-for 
+                            (+ (get yes-votes proposal) voter-power)
+                            (get yes-votes proposal)),
+                        no-votes: (if vote-for
+                            (get no-votes proposal)
+                            (+ (get no-votes proposal) voter-power))
+                    }
+                )
+            )
+            
+            (ok true)
+        )
+    )
+)
