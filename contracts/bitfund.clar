@@ -127,3 +127,41 @@
         (ok true)
     )
 )
+
+;; Public Functions
+
+;; desc Initialize the contract with default settings
+;; access Contract owner only
+;; returns (ok true) on success
+(define-public (initialize)
+    (begin
+        (asserts! (is-contract-owner) err-owner-only)
+        (asserts! (not (var-get initialized)) err-already-initialized)
+        (var-set initialized true)
+        (ok true)
+    )
+)
+
+;; desc Deposit STX tokens into the fund
+;; param amount: The amount of STX to deposit (in microSTX)
+;; returns (ok true) on successful deposit
+(define-public (deposit (amount uint))
+    (begin
+        (try! (check-initialized))
+        (asserts! (>= amount (var-get minimum-deposit)) err-below-minimum)
+        (asserts! (> amount u0) err-zero-amount)
+
+        ;; Transfer STX to contract
+        (try! (stx-transfer? amount tx-sender (as-contract tx-sender)))
+        
+        ;; Update deposit records
+        (map-set deposits tx-sender {
+            amount: amount,
+            lock-until: (+ block-height (var-get lock-period)),
+            last-reward-block: block-height
+        })
+        
+        ;; Mint fund tokens
+        (mint-tokens tx-sender amount)
+    )
+)
